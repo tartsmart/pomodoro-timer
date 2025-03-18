@@ -2,13 +2,16 @@ import tkinter as tk
 import time
 import platform
 
-import pygame.mixer  # type: ignore
+import pygame.mixer
 
 # Initialize the mixer
 pygame.mixer.init()
-sound = pygame.mixer.Sound("conga.wav")
-sound.set_volume(1)
-
+try:
+    sound = pygame.mixer.Sound("conga.wav")
+    sound.set_volume(1)
+except FileNotFoundError:
+    print("Error: 'conga.wav' not found. Using default beep.")
+    sound = None
 
 # Create main window
 class PomodoroTimer:
