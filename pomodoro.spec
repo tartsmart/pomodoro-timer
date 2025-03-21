@@ -5,7 +5,7 @@ a = Analysis(
     ['pomodoro.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[('conga.wav', '.')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

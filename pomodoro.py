@@ -1,13 +1,35 @@
 import tkinter as tk
 import time
-import platform
+import sys 
+import os
+
+# Function to handle bundled files
+def resource_path(relative_path):
+    """Get the absolute path to a resource, works for dev and for PyInstaller."""
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+        print(f"Running in PyInstaller temp folder: {base_path}") #debug print
+    except Exception as e:
+        base_path = os.path.abspath(".")
+
+    full_path = os.path.join(base_path, relative_path)
+    print(f"Resource path: {full_path}") #debug print
+    return full_path
+
+sound_path = resource_path("conga.wav")
+if not os.path.exists(sound_path):
+    print(f"Sound not found: {sound_path}")
+else:
+    print(f"Sound found: {sound_path}")
+
 
 import pygame.mixer
 
 # Initialize the mixer
 pygame.mixer.init()
 try:
-    sound = pygame.mixer.Sound("conga.wav")
+    sound = pygame.mixer.Sound(sound_path)
     sound.set_volume(1)
 except FileNotFoundError:
     print("Error: 'conga.wav' not found. Using default beep.")
@@ -114,11 +136,18 @@ class PomodoroTimer:
         self.is_working = not self.is_working
 
     def play_alarm(self):
-        for _ in range(3):
-            pygame.mixer.Sound.play(sound)
-            time.sleep(0.2)
-        while pygame.mixer.get_busy():
-            time.sleep(0.1)
+        if sound:
+            print("Playing sound...") # Debug print
+            for _ in range(3):
+                pygame.mixer.Sound.play(sound)
+                time.sleep(0.2)
+            while pygame.mixer.get_busy():
+                time.sleep(0.1)
+        else:
+            print("Sound not found. Using fallback beep.") # Debug print
+            # Fallback to a system beep
+            import winsound
+            winsound.Beep(1000,800)
 
     def reset_timer(self):
         self.is_running = False
