@@ -42,17 +42,19 @@ class PomodoroTimer:
         self.root.title("Pomodoro Timer")
         self.root.geometry("300x400")
         self.root.configure(bg="#FFE4E1")
+        self.after_id = None
 
         # Initialize variables
         self.work_time = 25 * 60  # 25 min in seconds
         self.break_time = 5 * 60  # 5 min
-        # TESTING: 5-second work / 3-second break
-        #self.work_time = 5  # 5 seconds
-        #self.break_time = 3  # 3 seconds
+        # TESTING:1-second work / 1-second break
+        #self.work_time = 1  # 1 seconds
+        #self.break_time = 1  # 1 seconds
         self.current_time = self.work_time
         self.is_working = True
         self.sessions_completed = 0
         self.is_running = False
+        self.is_paused = False # New variable to track pause state
 
         # Create widgets
         self.create_widgets()
@@ -83,39 +85,76 @@ class PomodoroTimer:
             fg="#2F4F4F",
         )
         self.progress_label.pack(pady=10)
+       
+        # Create a frame to hold the buttons
+        self.button_frame = tk.Frame(self.root, bg="#FFE4E1")
+        self.button_frame.pack(pady=10)
 
+        # Add buttons to the frame
         self.start_button = tk.Button(
-            self.root,
+            self.button_frame,
             text="Start",
             command=self.start_timer,
             bg="#98FB98",
             fg="#006400",
             font=("Helvetica", 12),
         )
-        self.start_button.pack(pady=10)
+        self.start_button.grid(row=0, column=0, padx=5, pady=5)
+
+        self.pause_button = tk.Button(
+            self.button_frame,
+            text="Pause",
+            command=self.pause_timer,
+            bg="#98FB98",
+            fg="#006400",
+            font=("Helvetica", 12),
+        )
+        self.pause_button.grid(row=0, column=0, padx=5, pady=5)
+        self.pause_button.grid_remove()
 
         self.reset_button = tk.Button(
-            self.root,
+            self.button_frame,
             text="Reset",
             command=self.reset_timer,
             bg="#FFB6C1",
             fg="#8B0000",
             font=("Helvetica", 12),
         )
-        self.reset_button.pack(pady=10)
+        self.reset_button.grid(row=1, column=0, padx=5, pady=5)
+
+        # Initially show Start and Reset buttons and hide Pause
+        self.start_button.grid(row=0, column=0, padx=5, pady=5)
+        self.reset_button.grid(row=1, column=0, padx=5, pady=5)
+        self.pause_button.grid_remove()
 
     def start_timer(self):
         if not self.is_running:
             self.is_running = True
-            self.start_button.config(state=tk.DISABLED)
+            self.start_button.grid_remove() # Hide start button
+            self.pause_button.grid(row=0, column=0, padx=5, pady=5) # Show pause button
+            self.pause_button.config(state=tk.NORMAL) # Enable pause button
             self.countdown()
 
+    def pause_timer(self):
+        if not self.is_running:
+            return
+        self.is_paused = not self.is_paused # Toggle pause state
+
+        if self.is_paused:
+            self.root.after_cancel(self.after_id) # Stop scheduled countdown
+        else:
+            self.countdown() # Resume countdown
+        button_text = "Resume" if self.is_paused else "Pause"
+        self.pause_button.config(text=button_text)
+            
     def countdown(self):
-        if self.current_time >= 0 and self.is_running:
+        if self.is_paused:
+            return
+        elif self.current_time >= 0 and self.is_running:
             mins, secs = divmod(self.current_time, 60)
             self.time_label.config(text=f"{mins:02d}:{secs:02d}")
             self.current_time -= 1
-            self.root.after(1000, self.countdown)
+            self.after_id = self.root.after(1000, self.countdown)
         else:
             self.play_alarm()
             self.switch_mode()
@@ -123,6 +162,9 @@ class PomodoroTimer:
     def switch_mode(self):
         self.is_running = False
         self.start_button.config(state=tk.NORMAL)
+        self.pause_button.grid_remove() # Hide the Pause button
+        self.start_button.grid(row=0, column=0, padx=5, pady=5) # Show the Start button
+
         if self.is_working:
             self.current_time = self.break_time
             self.status_label.config(text="Take a break! ☕")
@@ -133,6 +175,7 @@ class PomodoroTimer:
         else:
             self.current_time = self.work_time
             self.status_label.config(text="Time to focus! 🌟")
+
         self.is_working = not self.is_working
 
     def play_alarm(self):
@@ -154,8 +197,13 @@ class PomodoroTimer:
         self.current_time = self.work_time
         self.is_working = True
         self.sessions_completed = 0
+        self.progress_label.config(text="Sessions completed: 0")
         self.time_label.config(text="25:00")
-        self.status_label.config(text="Sessions completed: 0")
+        self.status_label.config(text="Time to focus! 🌟")
+        
+        # Hide Pause and show Start button
+        self.pause_button.grid_remove()
+        self.start_button.grid(row=0, column=0, padx=5, pady=5)
         self.start_button.config(state=tk.NORMAL)
 
 
