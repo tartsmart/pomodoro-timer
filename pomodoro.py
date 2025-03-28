@@ -23,11 +23,10 @@ if not os.path.exists(sound_path):
 else:
     print(f"Sound found: {sound_path}")
 
-
 import pygame.mixer
 
 # Initialize the mixer
-pygame.mixer.init()
+pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
 try:
     sound = pygame.mixer.Sound(sound_path)
     sound.set_volume(1)
@@ -44,7 +43,15 @@ class PomodoroTimer:
         self.root.configure(bg="#FFE4E1")
         self.after_id = None
 
-        # Initialize variables
+        self.click_sound = None
+        try:
+            click_path = resource_path("click.wav")
+            if os.path.exists(click_path):
+                self.click_sound = pygame.mixer.Sound(click_path)
+                self.click_sound.set_volume(0.5)
+        except:
+            print("Button click sound not loaded")
+        
         self.work_time = 25 * 60  # 25 min in seconds
         self.break_time = 5 * 60  # 5 min
         # TESTING:1-second work / 1-second break
@@ -56,12 +63,10 @@ class PomodoroTimer:
         self.is_running = False
         self.is_paused = False # New variable to track pause state
 
-        # Create widgets
         self.create_widgets()
-
+        self.bind_button_sounds()
         self.root.mainloop()
 
-    # Method MUST be indented under the class!
     def create_widgets(self):
         self.time_label = tk.Label(
             self.root, text="25:00", font=("Helvetica", 48), bg="#FFE4E1", fg="#8B0000"
@@ -86,11 +91,9 @@ class PomodoroTimer:
         )
         self.progress_label.pack(pady=10)
        
-        # Create a frame to hold the buttons
         self.button_frame = tk.Frame(self.root, bg="#FFE4E1")
         self.button_frame.pack(pady=10)
 
-        # Add buttons to the frame
         self.start_button = tk.Button(
             self.button_frame,
             text="Start",
@@ -122,7 +125,6 @@ class PomodoroTimer:
         )
         self.reset_button.grid(row=1, column=0, padx=5, pady=5)
 
-        # Initially show Start and Reset buttons and hide Pause
         self.start_button.grid(row=0, column=0, padx=5, pady=5)
         self.reset_button.grid(row=1, column=0, padx=5, pady=5)
         self.pause_button.grid_remove()
@@ -130,20 +132,20 @@ class PomodoroTimer:
     def start_timer(self):
         if not self.is_running:
             self.is_running = True
-            self.start_button.grid_remove() # Hide start button
-            self.pause_button.grid(row=0, column=0, padx=5, pady=5) # Show pause button
-            self.pause_button.config(state=tk.NORMAL) # Enable pause button
+            self.start_button.grid_remove() 
+            self.pause_button.grid(row=0, column=0, padx=5, pady=5) 
+            self.pause_button.config(state=tk.NORMAL)
             self.countdown()
 
     def pause_timer(self):
         if not self.is_running:
             return
-        self.is_paused = not self.is_paused # Toggle pause state
+        self.is_paused = not self.is_paused 
 
         if self.is_paused:
-            self.root.after_cancel(self.after_id) # Stop scheduled countdown
+            self.root.after_cancel(self.after_id)
         else:
-            self.countdown() # Resume countdown
+            self.countdown()
         button_text = "Resume" if self.is_paused else "Pause"
         self.pause_button.config(text=button_text)
             
@@ -162,8 +164,8 @@ class PomodoroTimer:
     def switch_mode(self):
         self.is_running = False
         self.start_button.config(state=tk.NORMAL)
-        self.pause_button.grid_remove() # Hide the Pause button
-        self.start_button.grid(row=0, column=0, padx=5, pady=5) # Show the Start button
+        self.pause_button.grid_remove() 
+        self.start_button.grid(row=0, column=0, padx=5, pady=5) 
 
         if self.is_working:
             self.current_time = self.break_time
@@ -180,7 +182,9 @@ class PomodoroTimer:
 
     def play_alarm(self):
         if sound:
-            print("Playing sound...") # Debug print
+            if self.click_sound:
+                self.click_sound.stop()
+                
             for _ in range(3):
                 pygame.mixer.Sound.play(sound)
                 time.sleep(0.2)
@@ -188,9 +192,16 @@ class PomodoroTimer:
                 time.sleep(0.1)
         else:
             print("Sound not found. Using fallback beep.") # Debug print
-            # Fallback to a system beep
             import winsound
             winsound.Beep(1000,800)
+
+    def bind_button_sounds(self):
+        for btn in [self.start_button, self.pause_button, self.reset_button]:
+            btn.bind("<Button-1>", self.play_click_sound)
+
+    def play_click_sound(self, event=None):
+        if self.click_sound:
+            pygame.mixer.Sound.play(self.click_sound)
 
     def reset_timer(self):
         self.is_running = False
@@ -201,11 +212,9 @@ class PomodoroTimer:
         self.time_label.config(text="25:00")
         self.status_label.config(text="Time to focus! 🌟")
         
-        # Hide Pause and show Start button
         self.pause_button.grid_remove()
         self.start_button.grid(row=0, column=0, padx=5, pady=5)
         self.start_button.config(state=tk.NORMAL)
-
 
 if __name__ == "__main__":
     PomodoroTimer()
